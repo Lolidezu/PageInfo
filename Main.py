@@ -87,7 +87,7 @@ def get_video_count(url):
             return video_count
     except requests.RequestException:
         return None
-    
+
 def fetch_data():
     url = url_entry.get()
     fixed_url = "https://" + url
@@ -126,10 +126,12 @@ except:
 app = Tk()
 app.title("Website Info Fetcher")
 app.geometry("1280x720")
+app.configure(bg="white")
 
 custom_font = font.Font(family="Arial", size=12)
 url_label = Label(app, text="Enter website url:", font=custom_font)
 url_label.pack(pady=10)
+url_label.configure(bg="white")
 
 url_entry = Entry(app, width=40, font=custom_font)
 url_entry.pack(pady=10)
@@ -142,7 +144,11 @@ text_frame = Frame(app)
 text_frame.pack(pady=10)
 
 # Adjust the Text widget to be a child of the frame
+"""
 result_text = Text(text_frame, height=10, width=40, wrap='word', font=custom_font)
+result_text.pack(side='left', fill='both', expand=True)
+"""
+result_text = Text(text_frame, height=10, width=40, wrap='word', font=custom_font, borderwidth=0, highlightthickness=0)
 result_text.pack(side='left', fill='both', expand=True)
 
 # Adjust the Scrollbar to be a child of the frame and bind it to the Text widget
