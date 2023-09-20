@@ -31,17 +31,19 @@ def get_page_load_time(url):
         return None
 
 def get_ttfb(url):
+    start_time = time.perf_counter()
     with requests.get(url, stream=True) as response:
         if response.status_code != 200:
             print(f"Failed to fetch {url}. Status code: {response.status_code}")
             return None
         
-        start_time = time.time()
-        response.iter_content(1)
-        end_time = time.time()
+        # Consume the first byte
+        next(response.iter_content(1))
+        end_time = time.perf_counter()
         
         ttfb = end_time - start_time
         return ttfb
+
     
 def get_page_size(url):
     try:
@@ -103,9 +105,9 @@ def fetch_data():
     if title is not None:
         result_text.insert("end", "The page : " + title + " data is\n")
     if load_time:
-        result_text.insert("end", f"The page loaded in {load_time:.6f} seconds.\n")
+        result_text.insert("end", f"The page loaded in {load_time * 1000:.2f} milliseconds.\n")
     if ttfb is not None:
-        result_text.insert("end", f"The page get first byte in {ttfb:.6f} seconds.\n")
+        result_text.insert("end", f"The page get first byte in {ttfb * 1000:.2f} milliseconds.\n")
     if pageSize is not None:
         result_text.insert("end", f"The page size is : {pageSize:.6f} kilobytes.\n")
     if imageCount is not None:
@@ -130,18 +132,28 @@ app.configure(bg="white")
 
 custom_font = font.Font(family="Arial", size=12)
 url_label = Label(app, text="Enter website url:", font=custom_font)
-url_label.pack(pady=10)
+#url_label.pack(pady=10)
 url_label.configure(bg="white")
 
-url_entry = Entry(app, width=40, font=custom_font)
-url_entry.pack(pady=10)
+url_entry = Entry(app, width=40, font=custom_font,borderwidth=2,relief="solid")
+#url_entry.pack(pady=10)
+
+# After rendering the widgets, get the dimensions of the url_entry
+app.update()
+entry_width = url_entry.winfo_width()
+
+# Adjust the button's width and height based on the Entry's size
+button_width = int(245)  # Assuming average character width is around 10 pixels, adjust accordingly
+button_height = 110  # Since the Entry's height is approximately two lines of text
 
 button_image = PhotoImage(file="button_image.png")
-fetch_button = ttk.Button(app, command=fetch_data, image=button_image, compound="left")
-fetch_button.pack(pady=10)
+fetch_button = Button(app, command=fetch_data, image=button_image, compound="left", width=button_width, height=button_height)
+fetch_button.grid(row=0, column=2, padx=10, pady=10)
+
+#fetch_button.pack(pady=10)
 
 text_frame = Frame(app)
-text_frame.pack(pady=10)
+#text_frame.pack(pady=10)
 
 # Adjust the Text widget to be a child of the frame
 """
@@ -150,6 +162,13 @@ result_text.pack(side='left', fill='both', expand=True)
 """
 result_text = Text(text_frame, height=10, width=40, wrap='word', font=custom_font, borderwidth=0, highlightthickness=0)
 result_text.pack(side='left', fill='both', expand=True)
+
+
+url_label.grid(row=0, column=0, padx=20, pady=10)
+url_entry.grid(row=0, column=1, padx=0, pady=10)
+fetch_button.grid(row=1, column=1, padx=10, pady=10)
+text_frame.grid(row=2, column=1, padx=10, pady=10)
+
 
 # Adjust the Scrollbar to be a child of the frame and bind it to the Text widget
 scrollbar = Scrollbar(text_frame, command=result_text.yview)
