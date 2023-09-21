@@ -1,10 +1,9 @@
-from tkinter import font
-from tkinter import ttk
 import requests
 from bs4 import BeautifulSoup
-from tkinter import *
 import requests
 import time
+import streamlit as st
+import socket
 
 def get_website_title(url):
     try:
@@ -90,108 +89,66 @@ def get_video_count(url):
     except requests.RequestException:
         return None
 
-def fetch_data():
-    url = url_entry.get()
-    fixed_url = "https://" + url
+def get_dns_resolution_time(domain):
+    start_time = time.perf_counter()
+    try:
+        ip_address = socket.gethostbyname(domain)
+        end_time = time.perf_counter()
+        return end_time - start_time
+    except socket.gaierror:
+        return None
 
-    load_time = get_page_load_time(fixed_url)
-    ttfb = get_ttfb(fixed_url)
-    title = get_website_title(fixed_url)
-    pageSize = get_page_size(fixed_url)
-    imageCount = get_image_count(fixed_url)
-    videoCount = get_video_count(fixed_url)
-    
-    result_text.delete(1.0, "end")
-    if title is not None:
-        result_text.insert("end", "The page : " + title + " data is\n")
-    if load_time:
-        result_text.insert("end", f"The page loaded in {load_time * 1000:.2f} milliseconds.\n")
-    if ttfb is not None:
-        result_text.insert("end", f"The page get first byte in {ttfb * 1000:.2f} milliseconds.\n")
-    if pageSize is not None:
-        result_text.insert("end", f"The page size is : {pageSize:.6f} kilobytes.\n")
-    if imageCount is not None:
-        result_text.insert("end", "The page have : " + str(imageCount) + " images.\n")
-    if videoCount is not None:
-        result_text.insert("end", "The page have : " + str(videoCount) + " videos.\n")        
-    else:
-        result_text.insert("end", "Failed to fetch the page.\n")
-    
-
-try:
-    from ctypes import windll
-    windll.shcore.SetProcessDpiAwareness(1)
-except:
-    pass
+def get_connection_time(domain, port):
+    try:
+        ip_address = socket.gethostbyname(domain)
+        start_time = time.perf_counter()
+        
+        with socket.create_connection((ip_address, port), timeout=10) as s:  # timeout is set to 10 seconds.
+            end_time = time.perf_counter()
+        
+        return end_time - start_time
+    except (socket.timeout, socket.error):
+        return None
 
 
-app = Tk()
-app.title("Website Info Fetcher")
-app.geometry("1280x720")
-app.configure(bg="white")
+#The web page | | |
+#             V V V
 
-custom_font = font.Font(family="Arial", size=12)
-url_label = Label(app, text="Enter website url:", font=custom_font)
-#url_label.pack(pady=10)
-url_label.configure(bg="white")
+def main():
+    st.title("Website Info Fetcher")
 
-url_entry = Entry(app, width=40, font=custom_font,borderwidth=2,relief="solid")
-#url_entry.pack(pady=10)
+    url = st.text_input("Enter website url:")
 
-# After rendering the widgets, get the dimensions of the url_entry
-app.update()
-entry_width = url_entry.winfo_width()
+    if st.button("Check"):
+        fixed_url = "https://" + url
 
-# Adjust the button's width and height based on the Entry's size
-button_width = int(245)  # Assuming average character width is around 10 pixels, adjust accordingly
-button_height = 110  # Since the Entry's height is approximately two lines of text
+        load_time = get_page_load_time(fixed_url)
+        ttfb = get_ttfb(fixed_url)
+        connect_time = get_connection_time(url,443)
+        title = get_website_title(fixed_url)
+        pageSize = get_page_size(fixed_url)
+        imageCount = get_image_count(fixed_url)
+        videoCount = get_video_count(fixed_url)
+        dns = get_dns_resolution_time(url)
 
-button_image = PhotoImage(file="button_image.png")
-fetch_button = Button(app, command=fetch_data, image=button_image, compound="left", width=button_width, height=button_height)
-fetch_button.grid(row=0, column=2, padx=10, pady=10)
+        if title:
+            st.write(f"The page : {title} data is")
+        if load_time:
+            st.write(f"The page loaded in {load_time * 1000:.2f} milliseconds.")
+        if ttfb:
+            st.write(f"The page get first byte in {ttfb * 1000:.2f} milliseconds.")
+        if dns is not None:
+            st.write(f"The page DNS is {dns * 1000:.2f} milliseconds.")
+        if connect_time is not None:
+            st.write(f"The page connection time is {connect_time * 1000:.2f} milliseconds.")
+        if pageSize:
+            st.write(f"The page size is : {pageSize:.6f} kilobytes.")
+        if imageCount is not None:
+            st.write(f"The page has : {imageCount} images.")
+        if videoCount is not None:
+            st.write(f"The page has : {videoCount} videos.")
+        else:
+            st.write("Failed to fetch other info of the page.")
 
-#fetch_button.pack(pady=10)
-
-text_frame = Frame(app)
-#text_frame.pack(pady=10)
-
-# Adjust the Text widget to be a child of the frame
-"""
-result_text = Text(text_frame, height=10, width=40, wrap='word', font=custom_font)
-result_text.pack(side='left', fill='both', expand=True)
-"""
-result_text = Text(text_frame, height=10, width=40, wrap='word', font=custom_font, borderwidth=0, highlightthickness=0)
-result_text.pack(side='left', fill='both', expand=True)
-
-
-url_label.grid(row=0, column=0, padx=20, pady=10)
-url_entry.grid(row=0, column=1, padx=0, pady=10)
-fetch_button.grid(row=1, column=1, padx=10, pady=10)
-text_frame.grid(row=2, column=1, padx=10, pady=10)
-
-
-# Adjust the Scrollbar to be a child of the frame and bind it to the Text widget
-scrollbar = Scrollbar(text_frame, command=result_text.yview)
-scrollbar.pack(side='right', fill='y')
-result_text.config(yscrollcommand=scrollbar.set)
-
-app.mainloop()
-
-"""    
-url = input("Enter website url: ")
-fixed_url = "https://" + url
-load_time = get_page_load_time(fixed_url)
-ttfb = get_ttfb(fixed_url)
-title = get_website_title(fixed_url)
-if title is not None:
-    print("The page : " + title + " data is")
-if load_time:
-    print(f"The page loaded in {load_time:.6f} seconds.")
-else:
-    print("Failed to fetch the page.")
-
-if ttfb is not None:
-    print(f"The page get first byte in {load_time:.6f} seconds.")
-else:
-    print("Failed to fetch the page.")
-"""
+if __name__ == "__main__":
+    main()
