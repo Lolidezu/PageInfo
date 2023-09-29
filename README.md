@@ -1,2 +1,2 @@
-# PageSpeedCheck
+# PageInfo
 Not yet available
