@@ -1,3 +1,4 @@
+from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 import requests
@@ -54,8 +55,6 @@ def get_page_size(url):
     except requests.RequestException:
         return None
 
-from bs4 import BeautifulSoup
-
 def get_text_amount(url):
     try:
         response = requests.get(url)
@@ -77,6 +76,26 @@ def get_image_count(url):
             return image_count
     except requests.RequestException:
         return None
+    
+def get_resource_size(url):
+    try:
+        response = requests.get(url, stream=True)
+        if response.status_code == 200:
+            return len(response.content)
+    except requests.RequestException:
+        return None
+        
+def get_img_size(url):
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            img_tags = soup.find_all('img')
+            img_urls = [urljoin(url, img['src']) for img in img_tags if 'src' in img.attrs]
+            img_sizes = [size for size in (get_resource_size(img_url) for img_url in img_urls) if size is not None]
+            return sum(img_sizes)/(1024*1024)
+    except requests.RequestException:
+        return None
 
 def get_video_count(url):
     try:
@@ -86,6 +105,18 @@ def get_video_count(url):
             videos = soup.find_all('video')
             video_count = len(videos)
             return video_count
+    except requests.RequestException:
+        return None
+    
+def get_vid_size(url):
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            video_tags = soup.find_all('video')
+            vid_urls = [urljoin(url, video['src']) for video in video_tags if 'src' in video.attrs]
+            vid_sizes = [size for size in (get_resource_size(vid_url) for vid_url in vid_urls) if size is not None]
+            return sum(vid_sizes)/(1024*1024)
     except requests.RequestException:
         return None
 
@@ -130,9 +161,11 @@ def main():
         imageCount = get_image_count(fixed_url)
         videoCount = get_video_count(fixed_url)
         dns = get_dns_resolution_time(url)
+        imgSize = get_img_size(fixed_url)
+        vidSize = get_vid_size(fixed_url)
 
         if title:
-            st.write(f"The page : {title} data is")
+            st.write(f"The page [ {title} ] data is")
         if load_time:
             st.write(f"The page loaded in {load_time * 1000:.2f} milliseconds.")
         if ttfb:
@@ -143,12 +176,14 @@ def main():
             st.write(f"The page connection time is {connect_time * 1000:.2f} milliseconds.")
         if pageSize:
             st.write(f"The page size is : {pageSize:.6f} kilobytes.")
-        if imageCount is not None:
+        if imageCount is not None and imageCount != 0:
             st.write(f"The page has : {imageCount} images.")
-        if videoCount is not None:
+            st.write(f"The images total size are : {imgSize:.2f} megabytes.")
+        if videoCount is not None and videoCount != 0:
             st.write(f"The page has : {videoCount} videos.")
+            st.write(f"The videos total size are : {vidSize:.2f} megabytes.")
         else:
-            st.write("Failed to fetch other info of the page.")
+            st.write("Other info of the page is not available or unloadable.")
 
 if __name__ == "__main__":
     main()
