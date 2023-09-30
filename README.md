@@ -1,2 +1,2 @@
 # PageInfo
-Not yet available
+Run using : ```streamlit run Main.py```
